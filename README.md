@@ -19,11 +19,10 @@
 # Hatrick
 
 Hatrick is an opinionated setup for a vanilla Fedora. Run it after a fresh install and pick, from
-a checklist, which parts of a C# developer's stack you want.
+a menu, which parts of a C# developer's stack you want.
 
-Every tool is a **plugin**: one self-contained file under `plugins/`. Hatrick discovers them at
-startup, asks you which ones to install, works out the order, and runs them. Adding a tool means
-dropping in a file — you never edit the installer.
+Every tool is a **plugin**: one file under `plugins/`, written in plain Fedora shell. Hatrick is a
+single script that finds them, asks which ones you want, and runs them.
 
 ## Quick start
 
@@ -32,119 +31,109 @@ git clone <this repo> && cd Hatrick
 ./hatrick
 ```
 
-Run it **as your normal user, not with sudo**. Hatrick calls `sudo` itself for the system-wide
-steps and deliberately keeps the user-scoped ones — group membership, GNOME settings, Flatpaks,
-`$HOME` — under your own account. Running the whole thing as root is what puts *root* in the
-`docker` group and writes your fonts and containers into `/root`.
+Run it **as your normal user, not with sudo**. Plugins call `sudo` themselves for the system-wide
+parts, which is what keeps `$USER`, `$HOME`, `gsettings` and `flatpak` pointing at your account.
+Running the whole thing as root is what puts *root* in the `docker` group and writes your fonts and
+containers into `/root`.
 
 ```
-hatrick [install]     Pick plugins from a checklist, then install them
-hatrick list          Show every discovered plugin and exit (changes nothing)
+hatrick [install]   pick plugins from a menu, then install them
+hatrick list        show every plugin and exit
 hatrick help
-hatrick version
+
+HATRICK_FORCE=1     reinstall even when a plugin reports itself installed
+NO_COLOR=1          plain output
 ```
 
-| Variable | Effect |
-| --- | --- |
-| `HATRICK_FORCE=1` | Reinstall plugins even when they are detected as already present |
-| `HATRICK_DEBUG=1` | Log every package/repo command as it runs |
-| `NO_COLOR=1` | Plain output |
+The menu is one numbered list. Type numbers and ranges to toggle, then press ENTER:
 
-Each run is logged to `~/.local/state/hatrick/hatrick-<timestamp>.log`.
+```
+Fonts
+   2) [x] jetbrains-mono         JetBrains Mono font
+   3) [x] mona-sans              Mona Sans font (static + variable)
+   4) [x] gnome-font-settings    Use Mona Sans / JetBrains Mono in GNOME
+
+Development
+   5) [x] docker                 Docker Engine, CLI and compose             (installed)
+  13) [ ] virtualbox             Oracle VirtualBox
+
+ numbers/ranges toggle (3 5-7) · a=all · n=none · ENTER=install · q=quit
+ > 5 13
+```
+
+Anything you tick that needs something you did not is added for you, with a line saying why
+(`+ docker (required by ravendb)`). Each run is logged to `~/.local/state/hatrick/`.
 
 ## What you can install
 
 | Group | Plugins |
 | --- | --- |
-| Base *(always)* | system update, base dependencies |
 | Browser | Vivaldi (set as default) |
 | Fonts | JetBrains Mono, Mona Sans, GNOME font settings |
 | Development | Docker + compose, lazydocker, .NET SDK 8, .NET SDK 10, Go, Sublime Text/Merge, VS Code, JetBrains Toolbox, VirtualBox *(off by default)*, RavenDB container |
 | Tooling | Obsidian, GNOME Tweaks + extensions |
 
-## How a run works
-
-1. **Discover** — every `plugins/<group>/<name>.sh` is read in a subshell to collect its metadata.
-2. **Select** — one whiptail checklist per group, defaults pre-ticked, anything already installed
-   marked as such. Cancel at any point and nothing has changed.
-3. **Resolve** — if something you ticked depends on something you did not, Hatrick offers to add
-   it. Decline and the dependent plugin is dropped instead of failing halfway through.
-4. **Confirm** — a final summary of exactly what will be installed.
-5. **Run** — dependencies first, each plugin in its own subshell. A plugin that fails is reported
-   and the rest of the run continues.
-6. **Summarise** — installed / skipped / failed, plus any notes plugins left for you.
+Before any of them, Hatrick runs `dnf update` and installs `curl wget git unzip tar fontconfig
+flatpak dnf-plugins-core`, which several plugins assume are there.
 
 ## Writing a plugin
 
-Create `plugins/<group>/<name>.sh`. Set the metadata, define `plugin_install`, done — it appears
-in the checklist on the next run.
+Create `plugins/<group>/<name>.sh`. One variable and one function is a complete plugin:
 
 ```bash
-# plugins/30-development/docker.sh
-PLUGIN_NAME="docker"                # unique id, used for dependencies
-PLUGIN_DESC="Docker Engine, CLI, containerd and compose"
-PLUGIN_GROUP="Development"          # checklist this appears under
-PLUGIN_DEFAULT=on                   # on | off — initial checkbox state
-PLUGIN_REQUIRES=""                  # space-separated PLUGIN_NAMEs
-PLUGIN_VERSION=""                   # pinned version, when you download a fixed artifact
-PLUGIN_MANDATORY=no                 # yes = always runs, never offered
+PLUGIN_DESC="htop process viewer"
 
-# Optional. True means "already installed", so the plugin is skipped on a re-run.
-# Must not need root: it also runs during `hatrick list`.
-plugin_detect() { pkg_installed docker-ce; }
-
-# Required. Runs with `set -e`, so the first failing command stops this plugin only.
-plugin_install() {
-    add_repofile https://download.docker.com/linux/fedora/docker-ce.repo
-    pkg_install docker-ce docker-ce-cli containerd.io docker-compose-plugin
-    enable_service docker
-    add_user_to_group docker
-}
-
-# Optional. Runs after every selected plugin has been installed.
-plugin_postinstall() { :; }
+plugin_install() { sudo dnf install -y htop; }
 ```
 
-Group directories are numerically prefixed (`00-base`, `10-browser`, …) and so are files within a
-group where order matters. That prefix is only about presentation order; real ordering comes from
-`PLUGIN_REQUIRES`, which is topologically sorted before anything runs. Unknown dependencies and
-dependency cycles are reported as errors before the first package is installed.
+It appears in the menu on the next run. The name comes from the filename, the group from the
+directory — there is nothing to register.
 
-Metadata is read, and plugins are executed, in subshells, so variables and functions from one
-plugin can never leak into another. Hatrick's own state uses an `HP_` prefix — the whole `PLUGIN_*`
-namespace is yours.
+The full contract, all of it optional except `PLUGIN_DESC` and `plugin_install`:
 
-### Helpers available to plugins
+```bash
+PLUGIN_DESC="Docker Engine, CLI and compose"   # required - the menu text
+PLUGIN_DEFAULT=off                             # optional - defaults to on
+PLUGIN_REQUIRES="golang docker"                # optional - other plugin names
 
-Use these instead of calling `dnf`, `rpm`, `curl`, `usermod` or `systemctl` directly; they handle
-privilege escalation, the user-vs-root distinction, and logging.
+# Optional. True means "already installed", so re-runs skip it. Must not need
+# sudo: it also runs during `hatrick list`.
+plugin_detect() { rpm -q docker-ce >/dev/null 2>&1; }
 
-| Helper | Purpose |
-| --- | --- |
-| `as_root <cmd>` / `as_user <cmd>` | Run with root privileges / as the invoking user |
-| `pkg_install`, `pkg_remove`, `pkg_installed`, `pkg_update` | Package operations |
-| `add_repofile <url>`, `write_repofile <name> <content>`, `add_repo_rpm <url>`, `import_rpm_key <url>` | Repositories and keys |
-| `fetch <url> <dest>` | Download into `$HATRICK_TMP`, cleaned up automatically |
-| `install_fonts_from_zip <url> <dir> <glob>...` | Install fonts and refresh the cache |
-| `add_user_to_group <group>`, `enable_service <unit>` | System integration |
-| `flatpak_install <app-id>`, `ensure_flathub` | Flatpak, in the user's scope |
-| `gsettings_set <schema> <key> <value>`, `is_gnome` | GNOME settings, applied to your session |
-| `have <cmd>`, `plugin_note <text>` | Command check; queue a message for the final summary |
-| `log_info`, `log_ok`, `log_warn`, `log_error` | Output that also lands in the run log |
+# Required. Runs with `set -e`, so the first failing command stops this plugin -
+# and only this plugin. The rest of the run continues.
+plugin_install() {
+    sudo dnf config-manager addrepo --overwrite \
+        --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo
+    sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+    sudo systemctl enable --now docker
+    sudo usermod -aG docker "$USER"
+    echo "Log out and back in for docker group access."
+}
+```
 
-Useful variables: `$HATRICK_USER`, `$HATRICK_HOME` (the invoking user, never root) and
-`$HATRICK_TMP` (scratch space removed when the run ends).
+Notes on writing the body:
+
+- **It is just shell.** Use `dnf`, `curl`, `rpm`, `systemctl`, `usermod`, `flatpak` — whatever you
+  would type yourself. There is no Hatrick API to learn.
+- **`sudo` where root is needed, and nowhere else.** `gsettings`, `flatpak --user`, `go install` and
+  anything touching `$HOME` must run without it, or they land on root.
+- **`$HATRICK_TMP`** is a scratch directory that is deleted when the run ends — handy for
+  download-and-extract plugins. Use `mktemp -d` instead if you prefer.
+- **`echo`** anything the user should know afterwards.
+- Pin versions with an ordinary variable at the top of the file (`VERSION="2.304"`), so bumping is
+  a one-line edit.
+
+**Order** is the order files are found: `plugins/<NN-group>/<NN-name>.sh`. Rename to reorder — that
+is what the `10-`/`20-` prefixes are for, and they are stripped from the displayed name.
+`PLUGIN_REQUIRES` does not sort anything; it only ticks a dependency you left out of the menu.
+
+Each plugin is read and run in its own subshell, so variables and functions cannot leak between
+plugins.
 
 ## Layout
 
 ```
-hatrick              CLI entrypoint
-lib/log.sh           output and the run log
-lib/system.sh        the helpers plugins are written against
-lib/plugin.sh        discovery, metadata, dependency sort, execution
-lib/ui.sh            whiptail checklists
+hatrick              the whole program
 plugins/<group>/     one file per tool
 ```
-
-`whiptail` comes from the `newt` package, which is not on a stock Fedora Workstation; Hatrick
-installs it before showing the first menu.

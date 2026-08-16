@@ -1,26 +1,20 @@
-# shellcheck shell=bash
-# Hatrick plugin — Docker Engine from Docker's own repository (not Fedora's
-# podman-docker shim), plus compose and the current user's group membership.
+PLUGIN_DESC="Docker Engine, CLI and compose"
 
-PLUGIN_NAME="docker"
-PLUGIN_DESC="Docker Engine, CLI, containerd and compose"
-PLUGIN_GROUP="Development"
-PLUGIN_DEFAULT=on
-
-plugin_detect() {
-    pkg_installed docker-ce
-}
+plugin_detect() { rpm -q docker-ce >/dev/null 2>&1; }
 
 plugin_install() {
     # Fedora's own docker packages conflict with docker-ce.
-    pkg_remove docker docker-client docker-client-latest docker-common \
+    sudo dnf remove -y docker docker-client docker-client-latest docker-common \
         docker-latest docker-latest-logrotate docker-logrotate \
-        docker-selinux docker-engine-selinux docker-engine
+        docker-selinux docker-engine-selinux docker-engine 2>/dev/null || true
 
-    add_repofile https://download.docker.com/linux/fedora/docker-ce.repo
-    pkg_install docker-ce docker-ce-cli containerd.io \
+    sudo dnf config-manager addrepo --overwrite \
+        --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo
+    sudo dnf install -y docker-ce docker-ce-cli containerd.io \
         docker-buildx-plugin docker-compose-plugin
 
-    enable_service docker
-    add_user_to_group docker
+    sudo systemctl enable --now docker
+    sudo usermod -aG docker "$USER"
+
+    echo "Log out and back in for docker group access."
 }

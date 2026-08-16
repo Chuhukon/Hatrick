@@ -1,22 +1,11 @@
-# shellcheck shell=bash
-# Hatrick plugin — .NET SDK 8 (LTS). Comes from the Microsoft package feed,
-# which older SDKs need on Fedora.
-
-PLUGIN_NAME="dotnet-8"
 PLUGIN_DESC=".NET SDK 8 (LTS)"
-PLUGIN_GROUP="Development"
-PLUGIN_DEFAULT=on
 
-PLUGIN_VERSION="8.0"
-MICROSOFT_PROD_RPM="https://packages.microsoft.com/config/rhel/8/packages-microsoft-prod.rpm"
-
-plugin_detect() {
-    pkg_installed "dotnet-sdk-${PLUGIN_VERSION}"
-}
+plugin_detect() { rpm -q dotnet-sdk-8.0 >/dev/null 2>&1; }
 
 plugin_install() {
-    if ! pkg_installed packages-microsoft-prod; then
-        add_repo_rpm "$MICROSOFT_PROD_RPM"
-    fi
-    pkg_install "dotnet-sdk-${PLUGIN_VERSION}"
+    # Older SDKs come from the Microsoft feed rather than Fedora's own.
+    rpm -q packages-microsoft-prod >/dev/null 2>&1 ||
+        sudo dnf install -y https://packages.microsoft.com/config/rhel/8/packages-microsoft-prod.rpm
+
+    sudo dnf install -y dotnet-sdk-8.0
 }
