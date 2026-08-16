@@ -13,8 +13,18 @@
 
 set -uo pipefail
 
-VERSION="0.3.0"
+VERSION="0.4.0"
 ROOT="$(cd -- "$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")" && pwd)"
+export HATRICK_ROOT="$ROOT"
+
+# Shared helpers, loaded before any plugin is read so that plugin_detect and
+# plugin_install can both use them. Plugins are still sourced one per subshell;
+# this is a library the program provides, not a plugin leaking into the next.
+for _lib in "$ROOT"/lib/*.sh; do
+    # shellcheck source=/dev/null
+    [ -f "$_lib" ] && . "$_lib"
+done
+unset _lib
 
 # Packages installed before anything else, because several plugins assume them.
 BASE_PACKAGES="curl wget git unzip tar fontconfig flatpak dnf-plugins-core"
@@ -100,7 +110,8 @@ index_of() {
 # is_installed <index> - true when the plugin reports itself as already present.
 # Runs in a subshell, and must never need sudo: `hatrick list` calls it too.
 is_installed() {
-    ( # shellcheck source=/dev/null
+    ( PLUGIN_ASSETS="${P_FILE[$1]%.sh}"
+      # shellcheck source=/dev/null
       . "${P_FILE[$1]}" >/dev/null 2>&1
       declare -F plugin_detect >/dev/null || exit 1
       plugin_detect >/dev/null 2>&1 )
@@ -187,6 +198,9 @@ add_requires() {
 run_plugin() {
     ( set -o pipefail
       set -e
+      # Files a plugin ships with: the plugin's own path, minus the .sh. The
+      # discovery glob is plugins/*/*.sh, so such a directory is never a plugin.
+      PLUGIN_ASSETS="${P_FILE[$1]%.sh}"
       # shellcheck source=/dev/null
       . "${P_FILE[$1]}"
       plugin_install ) 2>&1 | tee -a "$LOG"

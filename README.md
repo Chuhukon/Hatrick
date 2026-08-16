@@ -1,19 +1,10 @@
 ```
-            #####      #####
-       #########      ######                                                   #####                          ##
-    ####  ######      ######                          ####                    #######                    ######
-  ####   ######      ######                         ######                     #####                     ######
- ####    ######     #######                         ######                                              ######
-#####   ######      ######        #####  ######   ##########  ######   ###   #######        #######     ######      ####
- ####   ##################     ###############     ######     #############  ######       #####  ###    ######   ####
-    #   ##################   ######     ######    ######     #######   #### #######     ######   ###   ######  ###
-       ######      ######   ######     #######    ######     ######         ######     ######     #    #############
-       ######     #######   ######     ######     ######    #######         ######    ######          ################
-      ######      ######   ######     #######    ######     ######         ######    #######          ######    ######
-      ######      ######   ######     ######     ######    #######         ######    ######          ######     ######
-     ######      ######    ######    #######    ######     ######         ######     ######        ########    ######
-     ######      ######    ####### #########  ######### #########         ##################     ##########    #######
-     ######     #######     ######### #########  ###############           #########  ############  ######      ########
+ ██╗  ██╗ █████╗ ████████╗██████╗ ██╗ ██████╗██╗  ██╗
+ ██║  ██║██╔══██╗╚══██╔══╝██╔══██╗██║██╔════╝██║ ██╔╝
+ ███████║███████║   ██║   ██████╔╝██║██║     █████╔╝
+ ██╔══██║██╔══██║   ██║   ██╔══██╗██║██║     ██╔═██╗
+ ██║  ██║██║  ██║   ██║   ██║  ██║██║╚██████╗██║  ██╗
+ ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚═╝ ╚═════╝╚═╝  ╚═╝
 ```
 
 # Hatrick
@@ -48,17 +39,15 @@ NO_COLOR=1          plain output
 The menu is one numbered list. Type numbers and ranges to toggle, then press ENTER:
 
 ```
-Fonts
-   2) [x] jetbrains-mono         JetBrains Mono font
-   3) [x] mona-sans              Mona Sans font (static + variable)
-   4) [x] gnome-font-settings    Use Mona Sans / JetBrains Mono in GNOME
-
 Development
-   5) [x] docker                 Docker Engine, CLI and compose             (installed)
-  13) [ ] virtualbox             Oracle VirtualBox
+   2) [x] docker                 Docker Engine, CLI and compose             (installed)
+  10) [ ] virtualbox             Oracle VirtualBox
+
+Theme
+  14) [x] tokyo-night            Tokyo Night desktop (fonts, wallpaper, dark GNOME)
 
  numbers/ranges toggle (3 5-7) · a=all · n=none · ENTER=install · q=quit
- > 5 13
+ > 2 10
 ```
 
 Anything you tick that needs something you did not is added for you, with a line saying why
@@ -69,9 +58,9 @@ Anything you tick that needs something you did not is added for you, with a line
 | Group | Plugins |
 | --- | --- |
 | Browser | Vivaldi (set as default) |
-| Fonts | JetBrains Mono, Mona Sans, GNOME font settings |
 | Development | Docker + compose, lazydocker, .NET SDK 8, .NET SDK 10, Go, Sublime Text/Merge, VS Code, JetBrains Toolbox, VirtualBox *(off by default)*, RavenDB container |
 | Tooling | Obsidian, GNOME Tweaks + extensions |
+| Theme | Tokyo Night |
 
 Before any of them, Hatrick runs `dnf update` and installs `curl wget git unzip tar fontconfig
 flatpak dnf-plugins-core`, which several plugins assume are there.
@@ -115,7 +104,11 @@ plugin_install() {
 Notes on writing the body:
 
 - **It is just shell.** Use `dnf`, `curl`, `rpm`, `systemctl`, `usermod`, `flatpak` — whatever you
-  would type yourself. There is no Hatrick API to learn.
+  would type yourself. There is nothing to learn beyond the two names above, unless you are writing
+  a theme.
+- **Files a plugin ships with** go in `plugins/<group>/<name>/` — the plugin's own path without the
+  `.sh`. Inside the plugin that directory is `$PLUGIN_ASSETS`. Discovery globs `plugins/*/*.sh`, so
+  a directory next to a plugin is never mistaken for one.
 - **`sudo` where root is needed, and nowhere else.** `gsettings`, `flatpak --user`, `go install` and
   anything touching `$HOME` must run without it, or they land on root.
 - **`$HATRICK_TMP`** is a scratch directory that is deleted when the run ends — handy for
@@ -129,11 +122,74 @@ is what the `10-`/`20-` prefixes are for, and they are stripped from the display
 `PLUGIN_REQUIRES` does not sort anything; it only ticks a dependency you left out of the menu.
 
 Each plugin is read and run in its own subshell, so variables and functions cannot leak between
-plugins.
+plugins. Everything in `lib/` is sourced first, by Hatrick itself, so those helpers *are* available
+everywhere — that is what themes are built on.
+
+## Writing a theme
+
+A theme is how the desktop looks: fonts, wallpaper, dark or light, and whatever else you always
+change on a fresh install. It is an ordinary plugin that only **declares** what it wants, next to a
+folder holding the files it ships:
+
+```
+plugins/50-theme/tokyo-night.sh                 the declarations
+plugins/50-theme/tokyo-night/background.jpg     the wallpaper
+```
+
+Copy `tokyo-night.sh`, change the values, drop your own image in a folder beside it. `lib/theme.sh`
+does the applying, so a new theme is one file and one image — and a new *kind* of setting is one
+new variable there, which every existing theme then ignores until it sets it.
+
+```bash
+PLUGIN_DESC="Tokyo Night desktop (fonts, wallpaper, dark GNOME)"
+
+THEME_NAME="tokyo-night"           # the asset folder next to this file
+
+THEME_FONTS="mona-sans jetbrains-mono"   # installed by the theme, from lib/fonts.sh
+
+THEME_FONT_INTERFACE="Mona Sans 11"      # org.gnome.desktop.interface font-name
+THEME_FONT_DOCUMENT="JetBrains Mono 12"  #                            document-font-name
+THEME_FONT_MONOSPACE="JetBrains Mono 12" #                            monospace-font-name
+
+THEME_BACKGROUND="background.jpg"        # a file in the asset folder
+THEME_BACKGROUND_STYLE="zoom"            # picture-options
+
+THEME_COLOR_SCHEME="prefer-dark"         # the dark/light switch
+THEME_GTK_THEME="Adwaita-dark"           # for GTK3 apps, which ignore color-scheme
+THEME_ICON_THEME=""                      # optional
+
+THEME_EXTENSIONS_OFF=( "launch-new-instance@gnome-shell-extensions.gcampax.github.com" )
+THEME_EXTENSIONS_ON=()
+
+# Anything without a variable of its own yet. One "schema key value" per entry.
+THEME_GSETTINGS=(
+    "org.gnome.shell.extensions.dash-to-dock click-action focus-or-previews"
+)
+
+plugin_detect()  { theme_detect; }
+plugin_install() { theme_apply; }
+```
+
+What applying does, in order — every step is skipped with a printed note rather than failing when
+the thing it touches is not there, so one theme file works on a bare GNOME and on a fully kitted
+one:
+
+1. Installs each font in `THEME_FONTS` (`lib/fonts.sh` — add a font there and any theme can name it).
+2. Copies the wallpaper to `~/.local/share/backgrounds/hatrick/` and points the desktop *and* lock
+   screen at it. The copy is deliberate: `gsettings` keeps that path forever, and this checkout may
+   not survive the week.
+3. Sets the three GNOME font keys.
+4. Sets `color-scheme`, `gtk-theme`, `icon-theme`.
+5. Enables and disables the GNOME Shell extensions listed.
+6. Applies every line of `THEME_GSETTINGS`.
+
+Only fonts use `sudo`. Wallpapers and `gsettings` belong to your account.
 
 ## Layout
 
 ```
 hatrick              the whole program
+lib/                 helpers sourced before any plugin (fonts, themes)
 plugins/<group>/     one file per tool
+plugins/<group>/<name>/   files that plugin ships with, as $PLUGIN_ASSETS
 ```
