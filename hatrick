@@ -1,0 +1,254 @@
+#!/usr/bin/env bash
+#
+# Hatrick — an opinionated stack for a vanilla Fedora.
+#
+# Run this as your normal user. Hatrick escalates with sudo for the system-wide
+# parts and deliberately keeps the user-scoped parts (group membership, GNOME
+# settings, flatpaks, $HOME) under your own account.
+#
+#   ./hatrick            interactive install
+#   ./hatrick list       show every discovered plugin and exit
+#   ./hatrick --help
+#
+# Adding a tool means dropping one file into plugins/<group>/. Nothing here
+# needs to change. See README.md for the plugin contract.
+
+set -uo pipefail
+
+HATRICK_VERSION="0.2.0"
+
+HATRICK_ROOT="$(cd -- "$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")" && pwd)"
+export HATRICK_ROOT
+
+# shellcheck source=lib/log.sh
+. "$HATRICK_ROOT/lib/log.sh"
+# shellcheck source=lib/system.sh
+. "$HATRICK_ROOT/lib/system.sh"
+# shellcheck source=lib/plugin.sh
+. "$HATRICK_ROOT/lib/plugin.sh"
+# shellcheck source=lib/ui.sh
+. "$HATRICK_ROOT/lib/ui.sh"
+
+# ---------------------------------------------------------------------------
+# Lifecycle
+# ---------------------------------------------------------------------------
+
+hatrick_cleanup() {
+    sudo_release
+    [ -n "${HATRICK_TMP:-}" ] && [ -d "$HATRICK_TMP" ] && rm -rf "$HATRICK_TMP"
+    [ -n "${HATRICK_NOTES:-}" ] && [ -f "$HATRICK_NOTES" ] && rm -f "$HATRICK_NOTES"
+    return 0
+}
+
+hatrick_init() {
+    HATRICK_TMP="$(mktemp -d -t hatrick-XXXXXXXX)"
+    HATRICK_NOTES="$(mktemp -t hatrick-notes-XXXXXXXX)"
+    export HATRICK_TMP HATRICK_NOTES
+    trap hatrick_cleanup EXIT INT TERM
+    hatrick_log_open
+}
+
+# require_non_root — the single most important guard in Hatrick. Running the
+# whole thing as root is what made the original script add *root* to the docker
+# group and write the fonts/gsettings/containers into /root.
+require_non_root() {
+    [ "$(id -u)" -ne 0 ] && return 0
+    log_error "do not run Hatrick as root or with sudo."
+    cat >&2 <<'EOF'
+
+Run it as your normal user instead:
+
+    ./hatrick
+
+Hatrick calls sudo itself for the system-wide steps, and keeps group
+membership, GNOME settings, flatpaks and $HOME under your own account.
+EOF
+    return 1
+}
+
+require_fedora() {
+    local id=""
+    [ -r /etc/os-release ] && id="$(. /etc/os-release && echo "${ID:-}")"
+    case "$id" in
+        fedora) return 0 ;;
+        *)      log_warn "this does not look like Fedora (ID=${id:-unknown}); continuing anyway" ;;
+    esac
+    return 0
+}
+
+# ---------------------------------------------------------------------------
+# Commands
+# ---------------------------------------------------------------------------
+
+cmd_help() {
+    cat <<EOF
+Hatrick ${HATRICK_VERSION} — an opinionated stack for a vanilla Fedora.
+
+Usage:
+  hatrick [install]     Pick plugins from a checklist, then install them.
+  hatrick list          List every discovered plugin and exit.
+  hatrick help          Show this text.
+  hatrick version       Print the version.
+
+Environment:
+  HATRICK_FORCE=1       Reinstall plugins even when detected as present.
+  HATRICK_DEBUG=1       Verbose command logging.
+  NO_COLOR=1            Disable coloured output.
+
+Plugins live in ${HATRICK_ROOT#"$HOME"/}/plugins/<group>/<name>.sh — drop a file
+in and it shows up in the checklist. See README.md for the contract.
+EOF
+}
+
+cmd_list() {
+    plugins_discover || return 1
+
+    local group name flag detail
+    for group in "${HP_GROUPS[@]}"; do
+        printf '\n%s\n' "${HATRICK_C_BOLD}${group}${HATRICK_C_RESET}"
+        for name in "${HP_ORDER[@]}"; do
+            [ "${HP_GROUP[$name]}" = "$group" ] || continue
+
+            if [ "${HP_MANDATORY[$name]}" = "yes" ]; then
+                flag="[always]"
+            else
+                flag="[${HP_DEFAULT[$name]}]"
+            fi
+            printf '  %-22s %-9s %s\n' "$name" "$flag" "${HP_DESC[$name]}"
+
+            # Second line only when there is something extra worth saying.
+            detail=""
+            plugin_is_installed "$name" && detail="already installed"
+            [ -n "${HP_REQ[$name]}" ] && \
+                detail="${detail:+${detail}, }requires: ${HP_REQ[$name]}"
+            [ -n "$detail" ] && \
+                printf '  %-22s %s%s%s\n' "" "$HATRICK_C_DIM" "$detail" "$HATRICK_C_RESET"
+        done
+    done
+
+    # Show the order an "install everything" run would actually use.
+    local -a sorted=()
+    if plugins_sort sorted "${HP_ORDER[@]}"; then
+        printf '\n%s\n  %s\n' "${HATRICK_C_BOLD}Install order${HATRICK_C_RESET}" "${sorted[*]}"
+    fi
+    return 0
+}
+
+# hatrick_install_selected <name...> — run the plugins, collecting results.
+hatrick_install_selected() {
+    local -a queue=("$@")
+    local -a done_ok=() done_skip=() done_fail=()
+    local name rc
+
+    for name in "${queue[@]}"; do
+        if [ -z "${HATRICK_FORCE:-}" ] && plugin_is_installed "$name"; then
+            log_info "Skipping ${name}: already installed."
+            done_skip+=("$name")
+            continue
+        fi
+
+        # Called plainly, never inside an if-condition: bash suppresses errexit
+        # for the whole dynamic extent of a condition, subshells included, which
+        # would let a plugin run on past its first failing command.
+        plugin_run "$name"
+        rc=$?
+        if [ "$rc" -eq 0 ]; then
+            log_ok "✓ ${name}"
+            done_ok+=("$name")
+        else
+            log_error "✗ ${name} failed (see ${HATRICK_LOG:-the output above})"
+            done_fail+=("$name")
+        fi
+    done
+
+    # Post-install hooks run only for plugins that actually succeeded.
+    for name in ${done_ok[@]+"${done_ok[@]}"}; do
+        plugin_run_post "$name"
+        rc=$?
+        [ "$rc" -eq 0 ] || log_warn "post-install step for '$name' failed"
+    done
+
+    hatrick_summary \
+        "${#done_ok[@]}" "${done_ok[*]-}" \
+        "${#done_skip[@]}" "${done_skip[*]-}" \
+        "${#done_fail[@]}" "${done_fail[*]-}"
+
+    [ "${#done_fail[@]}" -eq 0 ]
+}
+
+hatrick_summary() {
+    local ok_n=$1 ok_list=$2 skip_n=$3 skip_list=$4 fail_n=$5 fail_list=$6
+
+    printf '\n%s\n' "${HATRICK_C_BOLD}────────────── Hatrick summary ──────────────${HATRICK_C_RESET}"
+    printf '  %sinstalled%s  %-3s %s\n' "$HATRICK_C_GREEN"  "$HATRICK_C_RESET" "$ok_n"   "$ok_list"
+    printf '  %sskipped%s    %-3s %s\n' "$HATRICK_C_DIM"    "$HATRICK_C_RESET" "$skip_n" "$skip_list"
+    printf '  %sfailed%s     %-3s %s\n' "$HATRICK_C_RED"    "$HATRICK_C_RESET" "$fail_n" "$fail_list"
+
+    if [ -s "${HATRICK_NOTES:-/dev/null}" ]; then
+        printf '\n%s\n' "${HATRICK_C_BOLD}Before you continue${HATRICK_C_RESET}"
+        # Notes are deduplicated: several plugins add the same group-membership note.
+        sort -u "$HATRICK_NOTES" | while IFS= read -r line; do
+            printf '  • %s\n' "$line"
+        done
+    fi
+
+    [ -n "${HATRICK_LOG:-}" ] && printf '\n%sFull log: %s%s\n' "$HATRICK_C_DIM" "$HATRICK_LOG" "$HATRICK_C_RESET"
+    return 0
+}
+
+cmd_install() {
+    require_non_root || return 1
+    require_fedora
+
+    log_banner
+    plugins_discover || return 1
+    log_info "Discovered ${#HP_ORDER[@]} plugins in ${#HP_GROUPS[@]} groups."
+
+    ui_ensure || return 1
+    ui_intro || { log_info "Cancelled, nothing was changed."; return 0; }
+
+    local -a selected=()
+    ui_select_plugins selected || { log_info "Cancelled, nothing was changed."; return 0; }
+    ui_resolve_deps selected
+
+    if [ "${#selected[@]}" -eq 0 ]; then
+        log_info "Nothing selected, nothing to do."
+        return 0
+    fi
+
+    local -a ordered=()
+    plugins_sort ordered "${selected[@]}" || return 1
+
+    ui_confirm_plan "${ordered[@]}" || { log_info "Cancelled, nothing was changed."; return 0; }
+
+    sudo_prime || { log_error "sudo is required to continue"; return 1; }
+
+    hatrick_install_selected "${ordered[@]}"
+    local rc=$?
+
+    pkg_autoremove
+    log_step "Done."
+    ui_reboot_prompt
+    return $rc
+}
+
+# ---------------------------------------------------------------------------
+# Entry
+# ---------------------------------------------------------------------------
+
+main() {
+    hatrick_init
+    case "${1:-install}" in
+        install|"")        cmd_install ;;
+        list|ls)           cmd_list ;;
+        help|-h|--help)    cmd_help ;;
+        version|--version) printf 'hatrick %s\n' "$HATRICK_VERSION" ;;
+        *)
+            log_error "unknown command '$1'"
+            cmd_help >&2
+            return 2
+            ;;
+    esac
+}
+
+main "$@"
