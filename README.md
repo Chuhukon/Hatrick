@@ -59,6 +59,7 @@ Anything you tick that needs something you did not is added for you, with a line
 
 | Group | Plugins |
 | --- | --- |
+| Identity | SSH key (ed25519) |
 | Browser | Vivaldi (set as default) |
 | Development | Docker + compose, lazydocker, .NET SDK 8, .NET SDK 10, Go, Sublime Text/Merge, VS Code, JetBrains Toolbox, VirtualBox, RavenDB container |
 | Tooling | Obsidian, GNOME Tweaks + extensions, Bottles, ClamAV + ClamUI, LocalSend, Pinta |
