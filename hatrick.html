@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hatrick - turns a clean Fedora install into a ready .net developer machine.</title>
+<meta name="description" content="Hatrick turns a clean Fedora install into a ready .net developer machine.">
+<meta property="og:title" content="Hatrick, set up a fresh opionated Fedora installation.">
+<meta property="og:description" content="Hatrick turns a clean Fedora install into a ready developer machine.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#11141f; --fg:#c8d0e6; --fg-strong:#e6ebf5; --muted:#8891ab;
+  --card:#161a28; --card-soft:#171b2a; --border:#242a3d;
+  --primary:#3fc8f5; --primary-fg:#0a0e18; --accent:#b08cff; --warn:#e0af68;
+  --term:#0e1220;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--fg);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.6}
+a{color:inherit;text-decoration:none}
+code,pre,.mono{font-family:"JetBrains Mono",ui-monospace,monospace}
+.wrap{max-width:64rem;margin:0 auto;padding:0 1.5rem}
+header.site{position:sticky;top:0;z-index:50;border-bottom:1px solid rgba(36,42,61,.7);background:rgba(17,20,31,.85);backdrop-filter:blur(12px)}
+header.site .wrap{display:flex;align-items:center;gap:1.5rem;padding-top:.85rem;padding-bottom:.85rem}
+.brand{font-family:"JetBrains Mono",monospace;font-size:.875rem;font-weight:600;color:var(--fg-strong)}
+nav.main{display:none;gap:1.25rem}
+@media(min-width:768px){nav.main{display:flex}}
+nav.main a{font-size:.875rem;color:var(--muted);transition:color .15s}
+nav.main a:hover{color:var(--primary)}
+.btn{display:inline-flex;align-items:center;gap:.5rem;border-radius:.5rem;font-size:.875rem;font-weight:600;padding:.65rem 1.25rem;transition:.15s}
+.btn-sm{padding:.4rem .75rem;font-weight:400}
+.btn-primary{background:var(--primary);color:var(--primary-fg)}
+.btn-primary:hover{opacity:.9}
+.btn-ghost{border:1px solid var(--border);color:var(--fg-strong)}
+.btn-ghost:hover{border-color:rgba(63,200,245,.6);color:var(--primary)}
+.ml-auto{margin-left:auto}
+.hero{position:relative;overflow:hidden;background-image:linear-gradient(rgba(63,200,245,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(63,200,245,.05) 1px,transparent 1px);background-size:48px 48px}
+.hero .wrap{padding-top:5rem;padding-bottom:6rem}
+.logo{color:var(--primary);font-size:13px;line-height:1.15;overflow-x:auto}
+@media(max-width:640px){.logo{font-size:7px}}
+h1{margin-top:2.5rem;max-width:48rem;font-size:clamp(2.25rem,5vw,3rem);font-weight:600;line-height:1.15;letter-spacing:-.02em;color:var(--fg-strong)}
+h1 .hl{color:var(--primary)}
+.lead{margin-top:1.5rem;max-width:42rem;font-size:1.125rem;color:var(--muted)}
+.cta-row{margin-top:2.5rem;display:flex;flex-wrap:wrap;gap:.75rem;align-items:center}
+section.blk{border-top:1px solid rgba(36,42,61,.6)}
+section.blk .wrap{padding-top:5rem;padding-bottom:5rem}
+.eyebrow{font-family:"JetBrains Mono",monospace;font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;color:var(--primary)}
+h2{margin-top:.75rem;font-size:clamp(1.6rem,3vw,2rem);font-weight:600;letter-spacing:-.02em;color:var(--fg-strong)}
+.intro{margin-top:1rem;max-width:44rem;color:var(--muted)}
+.body{margin-top:2rem}
+.term{border:1px solid var(--border);border-radius:.75rem;overflow:hidden;background:var(--term)}
+.term-bar{display:flex;align-items:center;gap:.5rem;border-bottom:1px solid var(--border);padding:.6rem .9rem;background:rgba(255,255,255,.02)}
+.dot{width:.6rem;height:.6rem;border-radius:99px}
+.term-title{margin-left:.5rem;font-family:"JetBrains Mono",monospace;font-size:.75rem;color:var(--muted)}
+.term pre{padding:1.25rem;overflow-x:auto;font-size:.8125rem;line-height:1.7;color:var(--fg)}
+.note{margin-top:1.5rem;display:flex;gap:1rem;border:1px solid rgba(224,175,104,.4);background:rgba(224,175,104,.1);border-radius:.5rem;padding:1.25rem;font-size:.875rem;color:rgba(230,235,245,.9)}
+.note b{color:var(--fg-strong)}
+.grid2{display:grid;gap:1.25rem}
+@media(min-width:640px){.grid2{grid-template-columns:1fr 1fr}}
+.card{border:1px solid var(--border);background:var(--card);border-radius:.5rem;padding:1.5rem;transition:border-color .15s}
+.card:hover{border-color:rgba(63,200,245,.4)}
+.card h3{font-size:1rem;font-weight:600;color:var(--fg-strong)}
+.card p{margin-top:.5rem;font-size:.875rem;color:var(--muted)}
+.card h3.grp{font-family:"JetBrains Mono",monospace;font-size:.875rem;text-transform:uppercase;letter-spacing:.15em;color:var(--primary)}
+.tags{margin-top:1rem;display:flex;flex-wrap:wrap;gap:.5rem}
+.tag{border:1px solid rgba(36,42,61,.9);background:rgba(17,20,31,.6);border-radius:.375rem;padding:.25rem .625rem;font-size:.875rem;color:rgba(230,235,245,.85)}
+.small{margin-top:1.5rem;font-size:.875rem;color:var(--muted)}
+code.k{color:var(--accent)}
+.ctaband{border-top:1px solid rgba(36,42,61,.6);border-bottom:1px solid rgba(36,42,61,.6);background:var(--card-soft)}
+.ctaband .wrap{display:flex;flex-direction:column;gap:1.5rem;padding-top:4rem;padding-bottom:4rem}
+@media(min-width:640px){.ctaband .wrap{flex-direction:row;align-items:center}}
+.ctaband h2{margin-top:0}
+footer .wrap{display:flex;flex-direction:column;gap:1rem;padding-top:3rem;padding-bottom:3rem;font-size:.875rem;color:var(--muted)}
+@media(min-width:640px){footer .wrap{flex-direction:row;align-items:center}}
+svg.gh{width:16px;height:16px;fill:currentColor}
+</style>
+</head>
+<body>
+<script id="gh-icon" type="text/template"></script>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="#top">hatrick</a>
+    <nav class="main">
+      <a href="#quick-start">Quick start</a>
+      <a href="#why">Why</a>
+      <a href="#menu">The menu</a>
+      <a href="#plugins">What you get</a>
+    </nav>
+    <a class="btn btn-ghost btn-sm ml-auto" href="#">
+      <svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.34c-2.23.49-2.7-1.07-2.7-1.07-.36-.93-.89-1.18-.89-1.18-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.71 1.23 1.87.87 2.33.67.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.83-2.15-.09-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.03 2.2-.82 2.2-.82.44 1.1.17 1.92.08 2.12.52.56.83 1.28.83 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"/></svg>
+      GitHub
+    </a>
+  </div>
+</header>
+
+<section class="hero" id="top">
+  <div class="wrap">
+<pre class="logo mono" aria-label="Hatrick"> ██╗  ██╗ █████╗ ████████╗██████╗ ██╗ ██████╗██╗  ██╗
+ ██║  ██║██╔══██╗╚══██╔══╝██╔══██╗██║██╔════╝██║ ██╔╝
+ ███████║███████║   ██║   ██████╔╝██║██║     █████╔╝
+ ██╔══██║██╔══██║   ██║   ██╔══██╗██║██║     ██╔═██╗
+ ██║  ██║██║  ██║   ██║   ██║  ██║██║╚██████╗██║  ██╗
+ ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚═╝ ╚═════╝╚═╝  ╚═╝</pre>
+    <h1>Fedora for .net developers, ready to work in <span class="hl">one run</span></h1>
+    <p class="lead">Hatrick is a script you run after a fresh Fedora install. It gets you up to speed within a blink of an eye.
+        Tick the parts you want from a single menu and the script takes care of it. No gists to hunt down, no half-remembered commands, no evening lost to setup.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="https://github.com/Chuhukon/Hatrick/"><svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.34c-2.23.49-2.7-1.07-2.7-1.07-.36-.93-.89-1.18-.89-1.18-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.71 1.23 1.87.87 2.33.67.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.83-2.15-.09-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.03 2.2-.82 2.2-.82.44 1.1.17 1.92.08 2.12.52.56.83 1.28.83 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"/></svg>Get it on GitHub</a>
+      <a class="btn btn-ghost" href="#quick-start">See how it works</a>
+    </div>
+  </div>
+</section>
+
+<section class="blk" id="quick-start">
+  <div class="wrap">
+    <p class="eyebrow">Quick start</p>
+    <h2>Two lines on a fresh machine</h2>
+    <p class="intro">Clone it, run it. A system update and the usual base packages are handled before anything you picked gets installed.</p>
+    <div class="body">
+      <div class="term">
+        <div class="term-bar"><span class="dot" style="background:#f7768e"></span><span class="dot" style="background:#e0af68"></span><span class="dot" style="background:#b08cff"></span><span class="term-title">~/ — bash</span></div>
+        <pre><span style="color:#8891ab">$ </span>curl -s https://github.com/Chuhukon/Hatrick/blob/main/hatrick.sh | bash</pre>
+      </div>
+      <div class="note">
+        <span aria-hidden="true" style="color:var(--warn)">&#9888;</span>
+        <p><b>Run it as your normal user, not with sudo</b> — the script asks for root only where it needs it, so everything lands in your account.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="blk" id="why">
+  <div class="wrap">
+    <p class="eyebrow">Why Hatrick</p>
+    <h2>Boring on purpose</h2>
+    <div class="body grid2">
+      <div class="card"><h3>Pick from a menu</h3><p>One numbered list of everything on offer. Tick what you want, press ENTER, walk away.</p></div>
+      <div class="card"><h3>Plain and simple</h3><p>Every plugin is a single shell file. Easy to read before you run it.</p></div>
+      <div class="card"><h3>Safe to re-run</h3><p>Already-installed tools are detected and skipped.</p></div>
+      <div class="card"><h3>A finished desktop</h3><p>Hatrick ships with a default theme. Fonts, wallpaper and dark GNOME applied in one go.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="blk" id="plugins">
+  <div class="wrap">
+    <p class="eyebrow">What you get</p>
+    <h2>The stack, grouped</h2>
+    <p class="intro">Everything is optional take the lot or take three things.</p>
+    <div class="body grid2">
+      <div class="card"><h3 class="grp">Development</h3><div class="tags"><span class="tag">Docker + compose</span><span class="tag">lazydocker</span><span class="tag">.NET 8 &amp; 10</span><span class="tag">Go</span><span class="tag">RavenDB</span><span class="tag">VirtualBox</span></div></div>
+      <div class="card"><h3 class="grp">Editors</h3><div class="tags"><span class="tag">VS Code</span><span class="tag">Sublime Text</span><span class="tag">Sublime Merge</span><span class="tag">JetBrains Toolbox</span></div></div>
+      <div class="card"><h3 class="grp">Desktop &amp; apps</h3><div class="tags"><span class="tag">Vivaldi</span><span class="tag">Obsidian</span><span class="tag">GNOME Tweaks</span><span class="tag">GNOME extensions</span></div></div>
+      <div class="card"><h3 class="grp">Themes</h3><div class="tags"><span class="tag">Miami Sunset</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="ctaband">
+  <div class="wrap">
+    <div>
+      <h2>Fresh Fedora? Two lines and you're set.</h2>
+      <p class="intro" style="margin-top:.5rem">Free, open source, and small enough to read before you trust it.</p>
+    </div>
+    <a class="btn btn-primary" style="margin-left:auto;flex-shrink:0" href="https://github.com/Chuhukon/Hatrick/"><svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.34c-2.23.49-2.7-1.07-2.7-1.07-.36-.93-.89-1.18-.89-1.18-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.71 1.23 1.87.87 2.33.67.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.83-2.15-.09-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.03 2.2-.82 2.2-.82.44 1.1.17 1.92.08 2.12.52.56.83 1.28.83 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"/></svg>Get it on GitHub</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p class="mono">Hatrick, an opionated fedora setup, brought to you by the creators of backlot.software</p>
+    <a href="https://github.com/Chuhukon/Hatrick/" style="margin-left:auto;display:inline-flex;gap:.5rem;align-items:center"><svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.34c-2.23.49-2.7-1.07-2.7-1.07-.36-.93-.89-1.18-.89-1.18-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.71 1.23 1.87.87 2.33.67.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.83-2.15-.09-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.03 2.2-.82 2.2-.82.44 1.1.17 1.92.08 2.12.52.56.83 1.28.83 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"/></svg>Source on GitHub</a>
+  </div>
+</footer>
+</body>
+</html>

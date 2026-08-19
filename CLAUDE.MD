@@ -1,0 +1,1 @@
+Use AGENTS.MD for all decisions; where there is doubt, AGENTS.MD will prevail.
