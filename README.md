@@ -145,9 +145,9 @@ PLUGIN_DESC="Tokyo Night desktop (fonts, wallpaper, dark GNOME)"
 
 THEME_NAME="tokyo-night"           # the asset folder next to this file
 
-THEME_FONTS="mona-sans jetbrains-mono"   # installed by the theme, from lib/fonts.sh
+THEME_FONTS="inter jetbrains-mono"       # installed by the theme, from lib/fonts.sh
 
-THEME_FONT_INTERFACE="Mona Sans 11"      # org.gnome.desktop.interface font-name
+THEME_FONT_INTERFACE="Inter 11"          # org.gnome.desktop.interface font-name
 THEME_FONT_DOCUMENT="JetBrains Mono 12"  #                            document-font-name
 THEME_FONT_MONOSPACE="JetBrains Mono 12" #                            monospace-font-name
 

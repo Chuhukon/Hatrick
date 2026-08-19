@@ -6,14 +6,14 @@
 # Adding a font is one arm in each case statement. Nothing else needs to know.
 
 JETBRAINS_MONO_VERSION="2.304"   # bump this line to move to a newer release
-MONA_SANS_VERSION="2.0.27"       # bump this line to move to a newer release
+INTER_VERSION="4.1"              # bump this line to move to a newer release
 
 # font_installed <key> - true when fontconfig already knows the family.
 # Must never need sudo: it runs during `hatrick list` too.
 font_installed() {
     case "$1" in
         jetbrains-mono) fc-list | grep -qi "JetBrains Mono" ;;
-        mona-sans)      fc-list | grep -qi "Mona Sans" ;;
+        inter)          fc-list : family | grep -qix "inter" ;;
         *)              return 1 ;;
     esac
 }
@@ -39,15 +39,15 @@ font_install() {
             sudo cp "$HATRICK_TMP"/jetbrains-mono/fonts/ttf/*.ttf /usr/share/fonts/jetbrains-mono/
             sudo fc-cache -f /usr/share/fonts/jetbrains-mono
             ;;
-        mona-sans)
-            curl -fsSL -o "$HATRICK_TMP/mona-sans.zip" \
-                "https://github.com/github/mona-sans/releases/download/v${MONA_SANS_VERSION}/mona-sans-complete-v${MONA_SANS_VERSION}.zip"
-            unzip -qo "$HATRICK_TMP/mona-sans.zip" -d "$HATRICK_TMP/mona-sans"
+        inter)
+            curl -fsSL -o "$HATRICK_TMP/inter.zip" \
+                "https://github.com/rsms/inter/releases/download/v${INTER_VERSION}/Inter-${INTER_VERSION}.zip"
+            unzip -qo "$HATRICK_TMP/inter.zip" -d "$HATRICK_TMP/inter"
 
-            sudo mkdir -p /usr/share/fonts/mona-sans
-            sudo cp "$HATRICK_TMP"/mona-sans/fonts/static/ttf/*.ttf /usr/share/fonts/mona-sans/
-            sudo cp "$HATRICK_TMP"/mona-sans/fonts/variable/*.ttf /usr/share/fonts/mona-sans/
-            sudo fc-cache -f /usr/share/fonts/mona-sans
+            sudo mkdir -p /usr/share/fonts/inter
+            sudo cp "$HATRICK_TMP"/inter/Inter.ttc /usr/share/fonts/inter/
+            sudo cp "$HATRICK_TMP"/inter/InterVariable*.ttf /usr/share/fonts/inter/
+            sudo fc-cache -f /usr/share/fonts/inter
             ;;
         *)
             echo "unknown font '${key}'" >&2
