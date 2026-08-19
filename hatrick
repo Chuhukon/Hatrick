@@ -68,15 +68,15 @@ EOF
 P_NAME=(); P_GROUP=(); P_DESC=(); P_REQ=(); P_SEL=(); P_FILE=()
 
 discover() {
-    local file name group desc default reqs
+    local file name group desc reqs
     for file in "$ROOT"/plugins/*/*.sh; do
         [ -f "$file" ] || continue
 
-        IFS='|' read -r desc default reqs < <(
-            unset PLUGIN_DESC PLUGIN_DEFAULT PLUGIN_REQUIRES
+        IFS='|' read -r desc reqs < <(
+            unset PLUGIN_DESC PLUGIN_REQUIRES
             # shellcheck source=/dev/null
             . "$file" >/dev/null 2>&1
-            printf '%s|%s|%s\n' "${PLUGIN_DESC:-}" "${PLUGIN_DEFAULT:-on}" "${PLUGIN_REQUIRES:-}"
+            printf '%s|%s\n' "${PLUGIN_DESC:-}" "${PLUGIN_REQUIRES:-}"
         )
         if [ -z "$desc" ]; then
             warn "skipping ${file#"$ROOT"/}: no PLUGIN_DESC"
@@ -93,7 +93,13 @@ discover() {
         P_DESC+=("$desc")
         P_REQ+=("$reqs")
         P_FILE+=("$file")
-        [ "$default" = "off" ] && P_SEL+=(0) || P_SEL+=(1)
+        # Ticked means "not here yet": ENTER installs exactly what is missing.
+        # HATRICK_FORCE=1 means reinstall regardless, so it ticks everything.
+        if [ -z "${HATRICK_FORCE:-}" ] && is_installed "$(( ${#P_FILE[@]} - 1 ))"; then
+            P_SEL+=(0)
+        else
+            P_SEL+=(1)
+        fi
     done
     [ "${#P_NAME[@]}" -gt 0 ] || die "no plugins found in $ROOT/plugins"
 }
@@ -261,8 +267,7 @@ cmd_list() {
             printf '\n%s\n' "${B}${group}${R}"
         fi
         printf '  %-22s %-42s %s%s%s\n' "${P_NAME[$i]}" "${P_DESC[$i]}" "$DIM" \
-            "$( [ "${P_SEL[$i]}" -eq 1 ] || printf 'off '; \
-                is_installed "$i" && printf 'installed '; \
+            "$( is_installed "$i" && printf 'installed '; \
                 [ -n "${P_REQ[$i]}" ] && printf 'needs:%s' "${P_REQ[$i]// /,}" )" "$R"
     done
     printf '\n'

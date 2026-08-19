@@ -1,5 +1,4 @@
 PLUGIN_DESC="Oracle VirtualBox"
-PLUGIN_DEFAULT=off
 
 # Oracle does not build for every Fedora release, so the build they *did* make
 # is pinned separately from the VirtualBox version. Bump both to upgrade.

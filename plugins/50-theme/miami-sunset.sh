@@ -1,10 +1,10 @@
-PLUGIN_DESC="Tokyo Night desktop (fonts, wallpaper, dark GNOME)"
+PLUGIN_DESC="Miami Sunset desktop (fonts, wallpaper, dark GNOME)"
 
 # A theme declares; lib/theme.sh does the work. Assets - here, the wallpaper -
-# live in plugins/50-theme/tokyo-night/, reachable as $PLUGIN_ASSETS. See
+# live in plugins/50-theme/miami-sunset/, reachable as $PLUGIN_ASSETS. See
 # "Writing a theme" in README.md.
 
-THEME_NAME="tokyo-night"
+THEME_NAME="miami-sunset"
 
 # Installed by the theme, from lib/fonts.sh.
 THEME_FONTS="inter jetbrains-mono"

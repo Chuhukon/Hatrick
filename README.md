@@ -36,15 +36,17 @@ HATRICK_FORCE=1     reinstall even when a plugin reports itself installed
 NO_COLOR=1          plain output
 ```
 
-The menu is one numbered list. Type numbers and ranges to toggle, then press ENTER:
+The menu is one numbered list. Everything you do not have yet is ticked, everything already
+installed is not, so ENTER alone installs exactly what is missing. Type numbers and ranges to
+toggle:
 
 ```
 Development
-   2) [x] docker                 Docker Engine, CLI and compose             (installed)
-  10) [ ] virtualbox             Oracle VirtualBox
+   2) [ ] docker                 Docker Engine, CLI and compose             (installed)
+  10) [x] virtualbox             Oracle VirtualBox
 
 Theme
-  14) [x] tokyo-night            Tokyo Night desktop (fonts, wallpaper, dark GNOME)
+  14) [x] miami-sunset            Miami Sunset desktop (fonts, wallpaper, dark GNOME)
 
  numbers/ranges toggle (3 5-7) · a=all · n=none · ENTER=install · q=quit
  > 2 10
@@ -58,9 +60,9 @@ Anything you tick that needs something you did not is added for you, with a line
 | Group | Plugins |
 | --- | --- |
 | Browser | Vivaldi (set as default) |
-| Development | Docker + compose, lazydocker, .NET SDK 8, .NET SDK 10, Go, Sublime Text/Merge, VS Code, JetBrains Toolbox, VirtualBox *(off by default)*, RavenDB container |
-| Tooling | Obsidian, GNOME Tweaks + extensions, Wine + WineGUI, LocalSend, Pinta |
-| Theme | Tokyo Night |
+| Development | Docker + compose, lazydocker, .NET SDK 8, .NET SDK 10, Go, Sublime Text/Merge, VS Code, JetBrains Toolbox, VirtualBox, RavenDB container |
+| Tooling | Obsidian, GNOME Tweaks + extensions, Bottles, ClamAV + ClamUI, LocalSend, Pinta |
+| Theme | Miami Sunset |
 
 Before any of them, Hatrick runs `dnf update` and installs `curl wget git unzip tar fontconfig
 flatpak dnf-plugins-core`, which several plugins assume are there.
@@ -82,11 +84,11 @@ The full contract, all of it optional except `PLUGIN_DESC` and `plugin_install`:
 
 ```bash
 PLUGIN_DESC="Docker Engine, CLI and compose"   # required - the menu text
-PLUGIN_DEFAULT=off                             # optional - defaults to on
 PLUGIN_REQUIRES="golang docker"                # optional - other plugin names
 
-# Optional. True means "already installed", so re-runs skip it. Must not need
-# sudo: it also runs during `hatrick list`.
+# Optional. True means "already installed", so the plugin starts unticked in the
+# menu and re-runs skip it. Must not need sudo: it also runs during
+# `hatrick list`.
 plugin_detect() { rpm -q docker-ce >/dev/null 2>&1; }
 
 # Required. Runs with `set -e`, so the first failing command stops this plugin -
@@ -132,18 +134,18 @@ change on a fresh install. It is an ordinary plugin that only **declares** what 
 folder holding the files it ships:
 
 ```
-plugins/50-theme/tokyo-night.sh                 the declarations
-plugins/50-theme/tokyo-night/background.jpg     the wallpaper
+plugins/50-theme/miami-sunset.sh                 the declarations
+plugins/50-theme/miami-sunset/background.jpg     the wallpaper
 ```
 
-Copy `tokyo-night.sh`, change the values, drop your own image in a folder beside it. `lib/theme.sh`
+Copy `miami-sunset.sh`, change the values, drop your own image in a folder beside it. `lib/theme.sh`
 does the applying, so a new theme is one file and one image — and a new *kind* of setting is one
 new variable there, which every existing theme then ignores until it sets it.
 
 ```bash
-PLUGIN_DESC="Tokyo Night desktop (fonts, wallpaper, dark GNOME)"
+PLUGIN_DESC="Miami Sunset desktop (fonts, wallpaper, dark GNOME)"
 
-THEME_NAME="tokyo-night"           # the asset folder next to this file
+THEME_NAME="miami-sunset"           # the asset folder next to this file
 
 THEME_FONTS="inter jetbrains-mono"       # installed by the theme, from lib/fonts.sh
 
