@@ -30,6 +30,7 @@ Adding a tool means adding one file under `plugins/<group>/<name>.sh`.
 - A plugin's own files live in `plugins/<group>/<name>/`, reachable as `$PLUGIN_ASSETS`.
 - Pin versions in a variable at the top of the plugin file.
 - After changing a shell file, run `bash -n` on it.
+- Do not implement duplicate installs, in that case ask where it needs to be part of.
 
 `README.md` is the contract for plugins and themes. If a change makes the README wrong, fix the
 README in the same change.
