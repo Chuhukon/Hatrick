@@ -33,4 +33,5 @@ Adding a tool means adding one file under `plugins/<group>/<name>.sh`.
 - Do not implement duplicate installs, in that case ask where it needs to be part of.
 
 `README.md` is the contract for plugins and themes. If a change makes the README wrong, fix the
-README in the same change.
+README in the same change. Keep language and style of the README short and sweet. Do not add
+information that is already in the README or change style of sentences already in the README. A list of plugins is not meant to be part of the README.
