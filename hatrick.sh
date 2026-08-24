@@ -245,10 +245,11 @@ install_selected() {
         fi
     done
 
-    printf '\n%s\n' "${B}────────── summary ──────────${R}"
-    printf '  %sinstalled%s %s\n' "$GREEN" "$R" "${ok[*]-}"
-    printf '  %sskipped%s   %s\n' "$DIM"   "$R" "${skip[*]-}"
-    printf '  %sfailed%s    %s\n' "$RED"   "$R" "${fail[*]-}"
+    { printf '\n%s\n' "${B}────────── summary ──────────${R}"
+      printf '  %sinstalled%s %s\n' "$GREEN" "$R" "${ok[*]-}"
+      printf '  %sskipped%s   %s\n' "$DIM"   "$R" "${skip[*]-}"
+      printf '  %sfailed%s    %s\n' "$RED"   "$R" "${fail[*]-}"
+    } | tee -a "$LOG"
     printf '\n%slog: %s%s\n' "$DIM" "$LOG" "$R"
 
     [ "${#fail[@]}" -eq 0 ]
@@ -335,6 +336,13 @@ trap 'rm -rf "$HATRICK_TMP"' EXIT
 
 mkdir -p "${XDG_STATE_HOME:-$HOME/.local/state}/hatrick"
 LOG="${XDG_STATE_HOME:-$HOME/.local/state}/hatrick/hatrick-$(date +%Y%m%d-%H%M%S).log"
+
+# Create it here, not at the first `tee`: a run that stops before any plugin
+# still leaves a file behind saying so, which is what makes a bug report useful.
+{ printf 'hatrick %s  %s\n' "$VERSION" "$(date -Is)"
+  [ -r /etc/os-release ] && ( . /etc/os-release && printf '%s\n' "$PRETTY_NAME" )
+  printf '\n'
+} > "$LOG"
 
 case "${1:-install}" in
     install|"")     cmd_install ;;
