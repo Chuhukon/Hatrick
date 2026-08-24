@@ -171,4 +171,8 @@ One theme file works on a bare GNOME and on a fully kitted one:
 5. Enables and disables the GNOME Shell extensions listed.
 6. Applies every line of `THEME_GSETTINGS`.
 
+Every step is attempted, and whatever did not apply is named at the end. A theme does need a
+running GNOME session: `gsettings` writes through the session bus, so from a TTY or over SSH the
+theme says so rather than applying nothing quietly.
+
 Only fonts use `sudo`. Wallpapers and `gsettings` belong to your account.
