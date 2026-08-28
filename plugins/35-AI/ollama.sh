@@ -7,5 +7,5 @@ plugin_install() {
     # systemd service it enables.
     curl -fsSL https://ollama.com/install.sh | sh
 
-    echo "Ollama serves on 127.0.0.1:11434. Fetch a model with 'ollama pull gemma3'."
+    echo "Ollama serves on 127.0.0.1:11434. Fetch a model with f.e. 'ollama pull gemma3'."
 }
