@@ -5,17 +5,14 @@ KEY="$HOME/.ssh/id_ed25519"
 plugin_detect() { [ -f "$KEY" ]; }
 
 plugin_install() {
-    local email
-
-    # Reset before read: under `set -e` an unguarded read would stop the plugin.
-    printf '  Email for the key: '
-    email=""; read -r email || true
+    # Hatrick asks for $HATRICK_EMAIL before the run starts, so nothing has to
+    # stop and ask here. Empty is fine; the key simply gets no comment.
 
     # ssh-keygen only creates ~/.ssh when it uses its own default path, not
     # when -f names one, so make it here. No -N, so ssh-keygen asks for the
     # passphrase itself, on /dev/tty.
     mkdir -p -m 700 "$HOME/.ssh"
-    ssh-keygen -t ed25519 -C "$email" -f "$KEY"
+    ssh-keygen -t ed25519 -C "${HATRICK_EMAIL:-}" -f "$KEY"
 
     echo
     echo "  Add this to GitHub -> Settings -> SSH and GPG keys:"

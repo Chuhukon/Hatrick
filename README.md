@@ -40,6 +40,7 @@ hatrick list        show every plugin and exit
 hatrick help
 
 HATRICK_FORCE=1     reinstall even when a plugin reports itself installed
+HATRICK_EMAIL=...   answer the email question up front instead of being asked
 NO_COLOR=1          plain output
 ```
 
@@ -105,6 +106,8 @@ plugin_install() {
   anything touching `$HOME` must run without it, or they land on root.
 - **`$HATRICK_TMP`** is a scratch directory that is deleted when the run ends; handy for
   download-and-extract plugins. Use `mktemp -d` instead if you prefer.
+- **`$HATRICK_EMAIL`** is your email address. Hatrick asks for it once before the run starts, when
+  a selected plugin mentions the name, so a plugin never has to stop and ask. It may be empty.
 - **Plain simple `echo`** anything the user should know afterwards.
 - Pin versions with an ordinary variable at the top of the file (`VERSION="2.304"`), so bumping is
   a one-line edit.

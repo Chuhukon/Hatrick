@@ -196,6 +196,23 @@ add_requires() {
     done
 }
 
+# ask_email - ask for the email address once, up front, when a selected plugin
+# needs one. Plugins read it as $HATRICK_EMAIL; a plugin that mentions the name
+# is a plugin that wants the answer, which is why grep is enough to decide.
+ask_email() {
+    local i
+    [ -n "${HATRICK_EMAIL:-}" ] && return 0
+    for i in "${!P_SEL[@]}"; do
+        [ "${P_SEL[$i]}" -eq 1 ] || continue
+        grep -q 'HATRICK_EMAIL' "${P_FILE[$i]}" || continue
+        # Reset before read: on EOF `read` leaves the variable untouched.
+        printf '\n%s' "Your email address, for ${P_NAME[$i]} and the like: "
+        HATRICK_EMAIL=""; read -r HATRICK_EMAIL || true
+        export HATRICK_EMAIL
+        return 0
+    done
+}
+
 # ---------------------------------------------------------------------------
 # Running
 # ---------------------------------------------------------------------------
@@ -283,6 +300,7 @@ Hatrick ${VERSION} - an opinionated stack for a vanilla Fedora.
   hatrick help        this text
 
   HATRICK_FORCE=1     reinstall even when a plugin reports itself installed
+  HATRICK_EMAIL=...   answer the email question up front instead of being asked
   NO_COLOR=1          plain output
 
 Plugins live in plugins/<group>/<name>.sh - drop a file in and it shows up.
@@ -312,6 +330,8 @@ user; it calls sudo itself, so group membership, GNOME settings, flatpaks and
     printf '\n%s' "Install ${B}${count}${R} plugin(s)? [Y/n] "
     local reply=n; read -r reply || reply=n
     case "$reply" in [Nn]*) say "Nothing was changed."; return 0 ;; esac
+
+    ask_email
 
     say "Asking for sudo once, up front."
     sudo -v || die "sudo is required"
