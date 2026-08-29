@@ -59,6 +59,10 @@ Theme
  > 2 10
 ```
 
+Every install also does the fonts once, before any plugin: the Microsoft core fonts, the
+rendering settings fontconfig and GNOME both have to agree on, and text scaling measured from
+the screens you have. `lib/fonts.sh` is all of it.
+
 ## Writing a plugin
 
 Create `plugins/<group>/<name>.sh`. One variable and one function is a complete plugin:
