@@ -29,6 +29,12 @@ THEME_EXTENSIONS_OFF=(
 
 # Anything else this theme wants, one "schema key value" per line.
 THEME_GSETTINGS=(
+    # Font rendering. Full hinting snaps stems to the pixel grid; rgba is
+    # subpixel antialiasing, which is what an LCD wants and what GNOME leaves
+    # on grayscale by default.
+    "org.gnome.desktop.interface font-hinting full"
+    "org.gnome.desktop.interface font-antialiasing rgba"
+
     # Dash to Dock, when it is installed: click an icon, get the window you
     # already have. Previews only once that window is the focused one.
     "org.gnome.shell.extensions.dash-to-dock click-action focus-or-previews"
