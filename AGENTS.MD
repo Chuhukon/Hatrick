@@ -31,6 +31,7 @@ Adding a tool means adding one file under `plugins/<group>/<name>.sh`.
 - Pin versions in a variable at the top of the plugin file.
 - After changing a shell file, run `bash -n` on it.
 - Do not implement duplicate installs, in that case ask where it needs to be part of.
+- Do not execute any of the commands for plugin installation during auto-mode or plan mode, let the developer run the hatrick script manually for that.
 
 `README.md` is the contract for plugins and themes. If a change makes the README wrong, fix the
 README in the same change. Keep language and style of the README short and sweet. Do not add
