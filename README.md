@@ -44,7 +44,8 @@ HATRICK_EMAIL=...   answer the email question up front instead of being asked
 NO_COLOR=1          plain output
 ```
 
-The menu is one numbered list. Everything which is not installed on your machine is ticked by default. 
+The menu is one numbered list. Everything which is not installed on your machine is ticked by default,
+except the ones marked `(opt-in)`, which are only installed if you tick them yourself.
 ENTER alone installs exactly what is missing. Type numbers and ranges to toggle:
 
 ```
@@ -80,6 +81,8 @@ The full contract, all of it is optional except `PLUGIN_DESC` and `plugin_instal
 ```bash
 PLUGIN_DESC="Docker Engine, CLI and compose"   # required - the menu text
 PLUGIN_REQUIRES="golang docker"                # optional - other plugin names
+PLUGIN_DISABLED=1                              # optional - 1 or true: never ticked
+                                               # by default, installed or not
 
 # Optional. True means "already installed", so the plugin starts unticked in the
 # menu and re-runs skip it. Do NOT use sudo: it also runs during
@@ -112,6 +115,8 @@ plugin_install() {
   download-and-extract plugins. Use `mktemp -d` instead if you prefer.
 - **`$HATRICK_EMAIL`** is your email address. Hatrick asks for it once before the run starts, when
   a selected plugin mentions the name, so a plugin never has to stop and ask. It may be empty.
+- **`PLUGIN_DISABLED=1`** is for a plugin not everyone wants: it shows up as `(opt-in)` and stays
+  unticked until you type its number. Another plugin's `PLUGIN_REQUIRES` still pulls it in.
 - **Plain simple `echo`** anything the user should know afterwards.
 - Pin versions with an ordinary variable at the top of the file (`VERSION="2.304"`), so bumping is
   a one-line edit.

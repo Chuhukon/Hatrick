@@ -1,4 +1,5 @@
 PLUGIN_DESC="OpenLogi (Logitech mouse and keyboard control)"
+PLUGIN_DISABLED=1
 
 # https://openlogi.org - a local-first replacement for Logitech Options+.
 # Upstream ships the RPM on GitHub only. Bump this line for a newer release.
