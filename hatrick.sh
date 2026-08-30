@@ -238,6 +238,12 @@ install_selected() {
     { sudo dnf update -y && sudo dnf install -y $BASE_PACKAGES; } 2>&1 | tee -a "$LOG" \
         || warn "preparation had problems, continuing anyway"
 
+    # Fonts are not a plugin: the Microsoft core fonts, the rendering settings
+    # that fontconfig and GNOME both have to agree on, and text scaling for a
+    # display GNOME leaves unscaled. See lib/fonts.sh.
+    step "Fonts"
+    font_setup 2>&1 | tee -a "$LOG" || warn "font setup had problems, continuing anyway"
+
     for i in "${!P_NAME[@]}"; do
         [ "${P_SEL[$i]}" -eq 1 ] || continue
 
