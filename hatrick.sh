@@ -27,7 +27,7 @@ done
 unset _lib
 
 # Packages installed before anything else, because several plugins assume them.
-BASE_PACKAGES="curl wget git unzip tar fontconfig flatpak dnf-plugins-core"
+BASE_PACKAGES="curl wget git unzip tar fontconfig flatpak dnf-plugins-core adw-gtk3-theme"
 
 # ---------------------------------------------------------------------------
 # Output
@@ -65,18 +65,18 @@ EOF
 # variables and functions can never leak into the next.
 # ---------------------------------------------------------------------------
 
-P_NAME=(); P_GROUP=(); P_DESC=(); P_REQ=(); P_SEL=(); P_FILE=()
+P_NAME=(); P_GROUP=(); P_DESC=(); P_REQ=(); P_SEL=(); P_OFF=(); P_FILE=()
 
 discover() {
-    local file name group desc reqs
+    local file name group desc reqs off
     for file in "$ROOT"/plugins/*/*.sh; do
         [ -f "$file" ] || continue
 
-        IFS='|' read -r desc reqs < <(
-            unset PLUGIN_DESC PLUGIN_REQUIRES
+        IFS='|' read -r desc reqs off < <(
+            unset PLUGIN_DESC PLUGIN_REQUIRES PLUGIN_DISABLED
             # shellcheck source=/dev/null
             . "$file" >/dev/null 2>&1
-            printf '%s|%s\n' "${PLUGIN_DESC:-}" "${PLUGIN_REQUIRES:-}"
+            printf '%s|%s|%s\n' "${PLUGIN_DESC:-}" "${PLUGIN_REQUIRES:-}" "${PLUGIN_DISABLED:-}"
         )
         if [ -z "$desc" ]; then
             warn "skipping ${file#"$ROOT"/}: no PLUGIN_DESC"
@@ -88,14 +88,21 @@ discover() {
         name="${file##*/}"; name="${name%.sh}"; name="${name#[0-9][0-9]-}"
         group="${file%/*}"; group="${group##*/}"; group="${group#[0-9][0-9]-}"
 
+        case "${off,,}" in 1|true) off=1 ;; *) off=0 ;; esac
+
         P_NAME+=("$name")
         P_GROUP+=("${group^}")
         P_DESC+=("$desc")
         P_REQ+=("$reqs")
+        P_OFF+=("$off")
         P_FILE+=("$file")
         # Ticked means "not here yet": ENTER installs exactly what is missing.
         # HATRICK_FORCE=1 means reinstall regardless, so it ticks everything.
-        if [ -z "${HATRICK_FORCE:-}" ] && is_installed "$(( ${#P_FILE[@]} - 1 ))"; then
+        # PLUGIN_DISABLED=1 is the opt-in case: never ticked for you, installed
+        # or not, until you type its number.
+        if [ "$off" -eq 1 ]; then
+            P_SEL+=(0)
+        elif [ -z "${HATRICK_FORCE:-}" ] && is_installed "$(( ${#P_FILE[@]} - 1 ))"; then
             P_SEL+=(0)
         else
             P_SEL+=(1)
@@ -138,7 +145,11 @@ menu() {
             fi
             [ "${P_SEL[$i]}" -eq 1 ] && mark="x" || mark=" "
             note=""
-            is_installed "$i" && note="${DIM}(installed)${R}"
+            if is_installed "$i"; then
+                note="${DIM}(installed)${R}"
+            elif [ "${P_OFF[$i]}" -eq 1 ]; then
+                note="${DIM}(opt-in)${R}"
+            fi
             printf '  %2d) [%s] %-22s %-42s %s\n' \
                 "$((i + 1))" "$mark" "${P_NAME[$i]}" "${P_DESC[$i]}" "$note"
         done
@@ -196,6 +207,23 @@ add_requires() {
     done
 }
 
+# ask_email - ask for the email address once, up front, when a selected plugin
+# needs one. Plugins read it as $HATRICK_EMAIL; a plugin that mentions the name
+# is a plugin that wants the answer, which is why grep is enough to decide.
+ask_email() {
+    local i
+    [ -n "${HATRICK_EMAIL:-}" ] && return 0
+    for i in "${!P_SEL[@]}"; do
+        [ "${P_SEL[$i]}" -eq 1 ] || continue
+        grep -q 'HATRICK_EMAIL' "${P_FILE[$i]}" || continue
+        # Reset before read: on EOF `read` leaves the variable untouched.
+        printf '\n%s' "Your email address, for ${P_NAME[$i]} and the like: "
+        HATRICK_EMAIL=""; read -r HATRICK_EMAIL || true
+        export HATRICK_EMAIL
+        return 0
+    done
+}
+
 # ---------------------------------------------------------------------------
 # Running
 # ---------------------------------------------------------------------------
@@ -220,6 +248,12 @@ install_selected() {
     step "Preparing the system"
     { sudo dnf update -y && sudo dnf install -y $BASE_PACKAGES; } 2>&1 | tee -a "$LOG" \
         || warn "preparation had problems, continuing anyway"
+
+    # Fonts are not a plugin: the Microsoft core fonts, the rendering settings
+    # that fontconfig and GNOME both have to agree on, and text scaling for a
+    # display GNOME leaves unscaled. See lib/fonts.sh.
+    step "Fonts"
+    font_setup 2>&1 | tee -a "$LOG" || warn "font setup had problems, continuing anyway"
 
     for i in "${!P_NAME[@]}"; do
         [ "${P_SEL[$i]}" -eq 1 ] || continue
@@ -269,6 +303,7 @@ cmd_list() {
         fi
         printf '  %-22s %-42s %s%s%s\n' "${P_NAME[$i]}" "${P_DESC[$i]}" "$DIM" \
             "$( is_installed "$i" && printf 'installed '; \
+                [ "${P_OFF[$i]}" -eq 1 ] && printf 'opt-in '; \
                 [ -n "${P_REQ[$i]}" ] && printf 'needs:%s' "${P_REQ[$i]// /,}" )" "$R"
     done
     printf '\n'
@@ -283,6 +318,7 @@ Hatrick ${VERSION} - an opinionated stack for a vanilla Fedora.
   hatrick help        this text
 
   HATRICK_FORCE=1     reinstall even when a plugin reports itself installed
+  HATRICK_EMAIL=...   answer the email question up front instead of being asked
   NO_COLOR=1          plain output
 
 Plugins live in plugins/<group>/<name>.sh - drop a file in and it shows up.
@@ -312,6 +348,8 @@ user; it calls sudo itself, so group membership, GNOME settings, flatpaks and
     printf '\n%s' "Install ${B}${count}${R} plugin(s)? [Y/n] "
     local reply=n; read -r reply || reply=n
     case "$reply" in [Nn]*) say "Nothing was changed."; return 0 ;; esac
+
+    ask_email
 
     say "Asking for sudo once, up front."
     sudo -v || die "sudo is required"

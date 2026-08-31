@@ -40,10 +40,12 @@ hatrick list        show every plugin and exit
 hatrick help
 
 HATRICK_FORCE=1     reinstall even when a plugin reports itself installed
+HATRICK_EMAIL=...   answer the email question up front instead of being asked
 NO_COLOR=1          plain output
 ```
 
-The menu is one numbered list. Everything which is not installed on your machine is ticked by default. 
+The menu is one numbered list. Everything which is not installed on your machine is ticked by default,
+except the ones marked `(opt-in)`, which are only installed if you tick them yourself.
 ENTER alone installs exactly what is missing. Type numbers and ranges to toggle:
 
 ```
@@ -57,6 +59,10 @@ Theme
  numbers/ranges toggle (3 5-7) · a=all · n=none · ENTER=install · q=quit
  > 2 10
 ```
+
+Every install also does the fonts once, before any plugin: the Microsoft core fonts, the
+rendering settings fontconfig and GNOME both have to agree on, and text scaling measured from
+the screens you have. `lib/fonts.sh` is all of it.
 
 ## Writing a plugin
 
@@ -75,6 +81,8 @@ The full contract, all of it is optional except `PLUGIN_DESC` and `plugin_instal
 ```bash
 PLUGIN_DESC="Docker Engine, CLI and compose"   # required - the menu text
 PLUGIN_REQUIRES="golang docker"                # optional - other plugin names
+PLUGIN_DISABLED=1                              # optional - 1 or true: never ticked
+                                               # by default, installed or not
 
 # Optional. True means "already installed", so the plugin starts unticked in the
 # menu and re-runs skip it. Do NOT use sudo: it also runs during
@@ -97,7 +105,7 @@ plugin_install() {
 
 - **It is just shell.** Use `dnf`, `curl`, `rpm`, `systemctl`, `usermod`, `flatpak`; whatever you
   would type yourself. There is nothing to learn beyond the two names above, unless you are writing
-  a theme.
+  a theme or a webapp.
 - **Files a plugin ships with** go in `plugins/<group>/<name>/`; the plugin's own path without the
   `.sh`. Inside the plugin that directory is `$PLUGIN_ASSETS`. Discovery globs `plugins/*/*.sh`, so
   a directory next to a plugin is never mistaken for one.
@@ -105,6 +113,10 @@ plugin_install() {
   anything touching `$HOME` must run without it, or they land on root.
 - **`$HATRICK_TMP`** is a scratch directory that is deleted when the run ends; handy for
   download-and-extract plugins. Use `mktemp -d` instead if you prefer.
+- **`$HATRICK_EMAIL`** is your email address. Hatrick asks for it once before the run starts, when
+  a selected plugin mentions the name, so a plugin never has to stop and ask. It may be empty.
+- **`PLUGIN_DISABLED=1`** is for a plugin not everyone wants: it shows up as `(opt-in)` and stays
+  unticked until you type its number. Another plugin's `PLUGIN_REQUIRES` still pulls it in.
 - **Plain simple `echo`** anything the user should know afterwards.
 - Pin versions with an ordinary variable at the top of the file (`VERSION="2.304"`), so bumping is
   a one-line edit.
@@ -114,7 +126,7 @@ plugin_install() {
 
 Each plugin is read and run in its own subshell, so variables and functions cannot leak between
 plugins. Everything in `lib/` is sourced first, by Hatrick itself, so those helpers *are* available
-everywhere. That is f.e. what themes are built on.
+everywhere. That is f.e. what themes and webapps are built on.
 
 ## Writing a theme
 
@@ -176,3 +188,36 @@ running GNOME session: `gsettings` writes through the session bus, so from a TTY
 theme says so rather than applying nothing quietly.
 
 Only fonts use `sudo`. Wallpapers and `gsettings` belong to your account.
+
+## Writing a webapp
+
+A webapp is a site that gets its own launcher, its own window and its own icon in the dash,
+instead of a tab you keep losing. It is an ordinary plugin that only **declares** a title and a
+URL:
+
+```bash
+PLUGIN_DESC="WhatsApp Web as a desktop app"
+PLUGIN_REQUIRES="vivaldi"
+
+WEBAPP_TITLE="WhatsApp"                   # only used if the site's manifest cannot be read
+WEBAPP_URL="https://web.whatsapp.com/"    # the site
+
+plugin_detect()  { webapp_detect; }
+plugin_install() { webapp_apply; }
+```
+
+Copy `whatsapp.sh` and change the two values. Hatrick writes no launcher and no icon of its own.
+`lib/webapp.sh` adds the URL to one Chromium policy file,
+`/etc/vivaldi/policies/managed/hatrick-webapps.json`, and **Vivaldi installs the web app itself**
+on its next start - or within seconds, if it is already running. What you get is the same thing as
+"Install as app" in Vivaldi's own menu: a launcher Vivaldi generates, opening the site with
+`--app-id`, and the site's own icons at every size.
+
+Three things follow from letting Vivaldi manage it, and they are worth knowing before you add one:
+
+- It is the one plugin kind that writes to `/etc`, so it asks for `sudo`. Chromium reads policy
+  from there and nowhere else; there is no per-user policy directory on Linux.
+- Vivaldi will say it is *managed by your organization*, because now it is.
+- Removing a webapp means taking its entry out of that file and restarting Vivaldi. Vivaldi's own
+  uninstall is greyed out for a policy-installed app, and deleting the whole file removes every
+  webapp in it.
