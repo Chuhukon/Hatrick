@@ -27,7 +27,7 @@ done
 unset _lib
 
 # Packages installed before anything else, because several plugins assume them.
-BASE_PACKAGES="curl wget git unzip tar fontconfig flatpak dnf-plugins-core"
+BASE_PACKAGES="curl wget git unzip tar fontconfig flatpak dnf-plugins-core adw-gtk3-theme"
 
 # ---------------------------------------------------------------------------
 # Output

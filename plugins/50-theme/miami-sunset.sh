@@ -17,7 +17,7 @@ THEME_BACKGROUND="background.jpg"
 THEME_BACKGROUND_STYLE="zoom"
 
 THEME_COLOR_SCHEME="prefer-dark"
-THEME_GTK_THEME="Adwaita-dark"
+THEME_GTK_THEME="adw-gtk3-dark"
 
 # launch-new-instance is what makes a click on a dash icon open a *second*
 # window instead of raising the one already open. background-logo draws the
