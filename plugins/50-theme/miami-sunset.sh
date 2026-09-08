@@ -32,6 +32,9 @@ THEME_GSETTINGS=(
     # Dash to Dock, when it is installed: click an icon, get the window you
     # already have. Previews only once that window is the focused one.
     "org.gnome.shell.extensions.dash-to-dock click-action focus-or-previews"
+    # Do not automount or open removable media automatically.
+    "org.gnome.desktop.media-handling automount false"
+    "org.gnome.desktop.media-handling automount-open false"
 )
 
 plugin_detect()  { theme_detect; }
