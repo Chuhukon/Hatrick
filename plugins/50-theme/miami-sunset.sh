@@ -35,6 +35,9 @@ THEME_GSETTINGS=(
     # Do not automount or open removable media automatically.
     "org.gnome.desktop.media-handling automount false"
     "org.gnome.desktop.media-handling automount-open false"
+    # Ptyxis, the Fedora terminal: switch tabs the way a browser does.
+    "org.gnome.Ptyxis.Shortcuts move-next-tab <Control>Tab"
+    "org.gnome.Ptyxis.Shortcuts move-previous-tab <Shift><Control>Tab"
 )
 
 plugin_detect()  { theme_detect; }
