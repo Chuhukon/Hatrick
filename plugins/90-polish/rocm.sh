@@ -7,7 +7,11 @@ PLUGIN_DISABLED=1
 # and hipcc are `sudo dnf install rocm-devel`, and the `rocm` metapackage pulls
 # the full 3 GB of compute libraries.
 
-plugin_detect() { rpm -q rocminfo >/dev/null 2>&1; }
+plugin_detect() {
+    rpm -q rocminfo >/dev/null 2>&1 &&
+        { ! command -v ollama >/dev/null 2>&1 ||
+          [ -f /etc/systemd/system/ollama.service.d/rocm.conf ]; }
+}
 
 plugin_install() {
     # amdgpu publishes every compute-capable agent under /sys/class/kfd, and the
@@ -53,4 +57,18 @@ plugin_install() {
         echo "rocminfo cannot open the device; $gfx may need HSA_OVERRIDE_GFX_VERSION set to a target that is built."
 
     echo "rocm-smi watches the card, rocm-clinfo lists the OpenCL side."
+
+    # Ollama ships its own ROCm and finds the card with it, but skips an
+    # integrated GPU unless told otherwise, and would rather use Vulkan. A
+    # drop-in survives Ollama's installer rewriting ollama.service on upgrade.
+    if command -v ollama >/dev/null 2>&1; then
+        sudo mkdir -p /etc/systemd/system/ollama.service.d
+        printf '[Service]\nEnvironment="OLLAMA_IGPU_ENABLE=1"\nEnvironment="OLLAMA_VULKAN=0"\n' |
+            sudo tee /etc/systemd/system/ollama.service.d/rocm.conf >/dev/null
+        sudo systemctl daemon-reload
+        if systemctl is-active --quiet ollama; then
+            sudo systemctl restart ollama
+        fi
+        echo "Ollama now runs models on $gfx through ROCm; check with 'ollama ps'."
+    fi
 }

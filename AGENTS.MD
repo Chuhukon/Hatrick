@@ -32,6 +32,7 @@ Adding a tool means adding one file under `plugins/<group>/<name>.sh`.
 - After changing a shell file, run `bash -n` on it.
 - Do not implement duplicate installs, in that case ask where it needs to be part of.
 - Do not execute any of the commands for plugin installation during auto-mode or plan mode, let the developer run the hatrick script manually for that.
+- 90-polish contains all scripts to polish. These scripts'll run at the end can can rely on certain plugins or a combination of them already selected and or installed previously.
 
 `README.md` is the contract for plugins and themes. If a change makes the README wrong, fix the
 README in the same change. Keep language and style of the README short and sweet. Do not add
