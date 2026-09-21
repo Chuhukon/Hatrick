@@ -1,3 +1,37 @@
 
-# Ignore all .idea files
+# IDE and editor files
 .idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Operating system artifacts
+.DS_Store
+Thumbs.db
+
+# OpenTUI & Node/Bun dependencies
+node_modules/
+.bun/
+
+# Compiled binaries and build outputs
+/bin/
+dist/
+build/
+*.tsbuildinfo
+
+# Logs and debug output
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment and local configurations
+.env
+.env.local
+.env.*.local
+
+# Test coverage
+coverage/
+.nyc_output/

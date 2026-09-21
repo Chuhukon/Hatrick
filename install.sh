@@ -58,9 +58,11 @@ rm -rf "$DEST"
 mv "$TMP" "$DEST"
 trap - EXIT
 chmod +x "$DEST/hatrick.sh"
+[ -f "$DEST/bin/hatrick-tui" ] && chmod +x "$DEST/bin/hatrick-tui"
 
 mkdir -p "$HOME/.local/bin"
 ln -sfn "$DEST/hatrick.sh" "$BIN"
+[ -f "$DEST/bin/hatrick-tui" ] && ln -sfn "$DEST/bin/hatrick-tui" "$HOME/.local/bin/hatrick-tui"
 say "Linked ${B}${BIN}${R}"
 
 case ":$PATH:" in

@@ -35,8 +35,9 @@ parts when needed.
 The hatrick command:
 
 ```
-hatrick [install]   pick plugins from a menu, then install them
-hatrick list        show every plugin and exit
+hatrick [install]                  interactive TUI (or classic menu with --plain)
+hatrick run-plugin <name> [action] run a plugin action (install, update, remove)
+hatrick list                       show every plugin and exit
 hatrick help
 
 HATRICK_FORCE=1     reinstall even when a plugin reports itself installed
@@ -99,6 +100,12 @@ plugin_install() {
     sudo usermod -aG docker "$USER"
     echo "Log out and back in for docker group access."
 }
+
+# Optional. Defaults to re-running plugin_install if omitted.
+plugin_update() { plugin_install; }
+
+# Optional. Automated removal; if omitted, removal is disabled in the interface.
+plugin_remove() { sudo dnf remove -y docker-ce docker-ce-cli containerd.io; }
 ```
 
 ### Notes on writing the plugin:

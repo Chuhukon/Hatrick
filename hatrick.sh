@@ -228,16 +228,52 @@ ask_email() {
 # Running
 # ---------------------------------------------------------------------------
 
-# run_plugin <index> - execute one plugin, isolated, output copied to the log.
-run_plugin() {
+# run_plugin_action <index> <action> - execute install, update, or remove for one plugin
+run_plugin_action() {
+    local idx="$1" action="${2:-install}"
+    local file="${P_FILE[$idx]}"
+    local name="${P_NAME[$idx]}"
+    local assets="${file%.sh}"
+
     ( set -o pipefail
       set -e
-      # Files a plugin ships with: the plugin's own path, minus the .sh. The
-      # discovery glob is plugins/*/*.sh, so such a directory is never a plugin.
-      PLUGIN_ASSETS="${P_FILE[$1]%.sh}"
+      PLUGIN_ASSETS="$assets"
       # shellcheck source=/dev/null
-      . "${P_FILE[$1]}"
-      plugin_install ) 2>&1 | tee -a "$LOG"
+      . "$file"
+      case "$action" in
+          install)
+              declare -F plugin_install >/dev/null || { echo "error: $name has no plugin_install function" >&2; exit 1; }
+              plugin_install
+              ;;
+          update)
+              if declare -F plugin_update >/dev/null; then
+                  plugin_update
+              elif declare -F plugin_install >/dev/null; then
+                  plugin_install
+              else
+                  echo "error: $name has no plugin_update or plugin_install function" >&2
+                  exit 1
+              fi
+              ;;
+          remove)
+              if declare -F plugin_remove >/dev/null; then
+                  plugin_remove
+              else
+                  echo "error: plugin '$name' does not support removal (no plugin_remove)" >&2
+                  exit 1
+              fi
+              ;;
+          *)
+              echo "error: unknown action '$action' for plugin '$name'" >&2
+              exit 1
+              ;;
+      esac
+    )
+}
+
+# run_plugin <index> - execute one plugin, isolated, output copied to the log.
+run_plugin() {
+    run_plugin_action "$1" install 2>&1 | tee -a "$LOG"
     return "${PIPESTATUS[0]}"
 }
 
@@ -293,6 +329,25 @@ install_selected() {
 # Commands
 # ---------------------------------------------------------------------------
 
+cmd_run_plugin() {
+    local name="${1:-}" action="${2:-install}"
+    [ -n "$name" ] || die "run-plugin requires a plugin name"
+
+    discover
+    local i
+    i="$(index_of "$name")" || die "unknown plugin '$name'"
+
+    run_plugin_action "$i" "$action"
+}
+
+cmd_prepare_system() {
+    sudo dnf update -y && sudo dnf install -y $BASE_PACKAGES
+}
+
+cmd_setup_fonts() {
+    font_setup
+}
+
 cmd_list() {
     discover
     local i group=""
@@ -313,10 +368,12 @@ cmd_help() {
     cat <<EOF
 Hatrick ${VERSION} - an opinionated stack for a vanilla Fedora.
 
-  hatrick [install]   pick plugins from a menu, then install them
-  hatrick list        show every plugin and exit
-  hatrick help        this text
+  hatrick [install]                  pick plugins from a menu, then install them
+  hatrick run-plugin <name> [action] run a plugin action (install, update, remove)
+  hatrick list                       show every plugin and exit
+  hatrick help                       this text
 
+  --plain, --cli      use classic terminal menu instead of TUI
   HATRICK_FORCE=1     reinstall even when a plugin reports itself installed
   HATRICK_EMAIL=...   answer the email question up front instead of being asked
   NO_COLOR=1          plain output
@@ -368,6 +425,25 @@ user; it calls sudo itself, so group membership, GNOME settings, flatpaks and
 
 # ---------------------------------------------------------------------------
 
+PLAIN=0
+ARGS=()
+for arg in "$@"; do
+    case "$arg" in
+        --plain|--cli) PLAIN=1 ;;
+        *) ARGS+=("$arg") ;;
+    esac
+done
+
+cmd="${ARGS[0]:-install}"
+sub_args=()
+if [ "${#ARGS[@]}" -gt 1 ]; then
+    sub_args=("${ARGS[@]:1}")
+fi
+
+if [ "$PLAIN" -eq 0 ] && [ -t 0 ] && [ -t 1 ] && [ -x "$ROOT/bin/hatrick-tui" ] && [ "$cmd" = "install" ]; then
+    exec "$ROOT/bin/hatrick-tui" ${sub_args[@]+"${sub_args[@]}"}
+fi
+
 HATRICK_TMP="$(mktemp -d -t hatrick-XXXXXX)"
 export HATRICK_TMP
 trap 'rm -rf "$HATRICK_TMP"' EXIT
@@ -382,10 +458,13 @@ LOG="${XDG_STATE_HOME:-$HOME/.local/state}/hatrick/hatrick-$(date +%Y%m%d-%H%M%S
   printf '\n'
 } > "$LOG"
 
-case "${1:-install}" in
-    install|"")     cmd_install ;;
+case "$cmd" in
+    install)        cmd_install ;;
+    run-plugin)     cmd_run_plugin ${sub_args[@]+"${sub_args[@]}"} ;;
+    prepare-system) cmd_prepare_system ;;
+    setup-fonts)    cmd_setup_fonts ;;
     list|ls)        cmd_list ;;
     help|-h|--help) cmd_help ;;
     version|--version) say "hatrick $VERSION" ;;
-    *)              cmd_help >&2; die "unknown command '$1'" ;;
+    *)              cmd_help >&2; die "unknown command '$cmd'" ;;
 esac
