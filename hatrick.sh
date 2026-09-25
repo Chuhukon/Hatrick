@@ -67,6 +67,10 @@ EOF
 
 P_NAME=(); P_GROUP=(); P_DESC=(); P_REQ=(); P_SEL=(); P_OFF=(); P_FILE=()
 
+# General options: not plugins, listed after them in their own section.
+# G_UPDATE=1 runs `dnf update -y` before installing. On by default.
+G_UPDATE=1
+
 discover() {
     local file name group desc reqs off
     for file in "$ROOT"/plugins/*/*.sh; do
@@ -155,6 +159,11 @@ menu() {
         done
         group=""
 
+        printf '\n%s\n' "${B}General${R}"
+        [ "$G_UPDATE" -eq 1 ] && mark="x" || mark=" "
+        printf '  %2d) [%s] %-22s %-42s\n' \
+            "$(( ${#P_NAME[@]} + 1 ))" "$mark" "dnf-update" "Run dnf update -y before installing"
+
         printf '\n%s\n' "${DIM} numbers/ranges toggle (3 5-7) · a=all · n=none · ENTER=install · q=quit${R}"
         printf ' > '
         read -r reply || reply="q"
@@ -162,8 +171,8 @@ menu() {
         case "$reply" in
             "")  return 0 ;;
             q|Q) return 1 ;;
-            a|A) for i in "${!P_SEL[@]}"; do P_SEL[i]=1; done ;;
-            n|N) for i in "${!P_SEL[@]}"; do P_SEL[i]=0; done ;;
+            a|A) for i in "${!P_SEL[@]}"; do P_SEL[i]=1; done; G_UPDATE=1 ;;
+            n|N) for i in "${!P_SEL[@]}"; do P_SEL[i]=0; done; G_UPDATE=0 ;;
             *)   toggle $reply ;;
         esac
     done
@@ -178,11 +187,15 @@ toggle() {
             [0-9]*)        start="$token"; end="$token" ;;
             *)             warn "ignoring '$token'"; continue ;;
         esac
-        if [ "$start" -lt 1 ] || [ "$end" -gt "${#P_NAME[@]}" ] || [ "$start" -gt "$end" ]; then
+        if [ "$start" -lt 1 ] || [ "$end" -gt "$(( ${#P_NAME[@]} + 1 ))" ] || [ "$start" -gt "$end" ]; then
             warn "ignoring '$token': out of range"
             continue
         fi
         for (( i = start - 1; i < end; i++ )); do
+            if [ "$i" -eq "${#P_NAME[@]}" ]; then
+                [ "$G_UPDATE" -eq 1 ] && G_UPDATE=0 || G_UPDATE=1
+                continue
+            fi
             [ "${P_SEL[$i]}" -eq 1 ] && P_SEL[i]=0 || P_SEL[i]=1
         done
     done
@@ -246,7 +259,8 @@ install_selected() {
     local -a ok=() skip=() fail=()
 
     step "Preparing the system"
-    { sudo dnf update -y && sudo dnf install -y $BASE_PACKAGES; } 2>&1 | tee -a "$LOG" \
+    { if [ "$G_UPDATE" -eq 1 ]; then sudo dnf update -y; fi \
+        && sudo dnf install -y $BASE_PACKAGES; } 2>&1 | tee -a "$LOG" \
         || warn "preparation had problems, continuing anyway"
 
     # Fonts are not a plugin: the Microsoft core fonts, the rendering settings
