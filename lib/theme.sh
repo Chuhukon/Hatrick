@@ -159,15 +159,10 @@ theme_extensions() {
             _theme_problem "could not disable ${uuid}"
         fi
     done
-    for uuid in ${THEME_EXTENSIONS_ON[@]+"${THEME_EXTENSIONS_ON[@]}"}; do
-        if ! gnome-extensions list 2>/dev/null | grep -qx "$uuid"; then
-            echo "  skip ${uuid}: not installed"
-        elif gnome-extensions enable "$uuid" 2>/dev/null; then
-            echo "  enabled ${uuid}"
-        else
-            _theme_problem "could not enable ${uuid}"
-        fi
-    done
+    # Switching one on goes through lib/gnome.sh: a plugin may have installed
+    # the extension moments ago, and the running shell does not know it yet.
+    [ -n "${THEME_EXTENSIONS_ON[*]:-}" ] &&
+        gnome_extension_enable ${THEME_EXTENSIONS_ON[@]+"${THEME_EXTENSIONS_ON[@]}"}
     return 0
 }
 

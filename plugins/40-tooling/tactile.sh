@@ -17,9 +17,8 @@ plugin_install() {
     # Installs into ~/.local/share/gnome-shell/extensions, so no sudo.
     gnome-extensions install --force "$zip"
 
-    # Needs a running GNOME Shell to talk to, so never fatal.
-    gnome-extensions enable "$UUID" ||
-        echo "Could not enable Tactile; do it in the Extensions app after logging back in."
+    # The running shell does not know it yet, so this goes through gsettings.
+    gnome_extension_enable "$UUID"
 
     echo "Log out and back in, then press Super-T to show the grid."
 }

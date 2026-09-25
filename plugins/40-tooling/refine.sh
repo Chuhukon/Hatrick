@@ -17,9 +17,9 @@ plugin_install() {
                         gnome-shell-extension-dash-to-dock ||
         echo "Some GNOME extensions were not available in the repositories."
 
-    # Needs a running GNOME Shell to talk to, so never fatal.
-    gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com ||
-        echo "Could not enable AppIndicator support; do it in the Extensions app."
+    # The running shell does not know them yet, so this goes through gsettings.
+    gnome_extension_enable appindicatorsupport@rgcjonas.gmail.com \
+                           dash-to-dock@micxgx.gmail.com
 
-    echo "Enable the installed extensions in the Extensions app."
+    echo "Log out and back in for the extensions to load."
 }
