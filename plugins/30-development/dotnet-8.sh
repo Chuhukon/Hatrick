@@ -8,4 +8,5 @@ plugin_install() {
         sudo dnf install -y https://packages.microsoft.com/config/rhel/8/packages-microsoft-prod.rpm
 
     sudo dnf install -y dotnet-sdk-8.0
+    dotnet_trust_dev_cert
 }

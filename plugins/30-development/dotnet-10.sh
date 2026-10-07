@@ -4,4 +4,5 @@ plugin_detect() { rpm -q dotnet-sdk-10.0 >/dev/null 2>&1; }
 
 plugin_install() {
     sudo dnf install -y dotnet-sdk-10.0
+    dotnet_trust_dev_cert
 }
