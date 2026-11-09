@@ -1,7 +1,7 @@
 PLUGIN_DESC="ROCm (AMD GPU compute runtime and tools)"
 PLUGIN_DISABLED=1
 
-# Fedora 44 ships ROCm 7.1 in its own repositories, and AMD's repo.radeon.com
+# Fedora 45 ships ROCm 7.2 in its own repositories, and AMD's repo.radeon.com
 # has no Fedora build at all, so this adds no repo and pins no version: dnf
 # already has the right one. Only the runtime half is installed; the headers
 # and hipcc are `sudo dnf install rocm-devel`, and the `rocm` metapackage pulls
